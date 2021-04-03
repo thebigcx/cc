@@ -3,7 +3,7 @@
 #include "decl.h"
 
 const char* token_strings[] = {
-    "EOF", "+", "-", "*", "/", "==", "!=", "<", ">", "<=", ">=", "intlit", ";", "=", "identifier", "{", "}", "(", ")", "int", "if", "else", "\\n"
+    "EOF", "+", "-", "*", "/", "==", "!=", "<", ">", "<=", ">=", "intlit", ";", "=", "identifier", "{", "}", "(", ")", "int", "if", "else", "while", "for", "void", "char", "\\n"
 };
 
 static char identifier_buf[32];
@@ -12,12 +12,12 @@ static int next()
 {
     int c;
 
-    c = input[head_pos];
-    head_pos++;
+    c = input[char_head_pos];
+    char_head_pos++;
 
     if (c == '\n')
     {
-        line++;
+        current_line++;
     }
 
     return c;
@@ -25,7 +25,7 @@ static int next()
 
 static int peek_next()
 {
-    return input[head_pos]; // head_pos is one after current char
+    return input[char_head_pos]; // head_pos is one after current char
 }
 
 static int skip()
@@ -58,7 +58,7 @@ static int scanint(int c)
         c = next();
     }
 
-    head_pos--;
+    char_head_pos--;
     return val;
 }
 
@@ -70,7 +70,7 @@ static int scan_identifier(int c, char* buf, int lim)
     {
         if (i == lim - 1)
         {
-            syntax_error(line, "Identifier too long.");
+            syntax_error("Identifier too long.");
         }
         else
         {
@@ -80,7 +80,7 @@ static int scan_identifier(int c, char* buf, int lim)
         c = next();
     }
 
-    head_pos--;
+    char_head_pos--;
     buf[i] = '\0';
     return i;
 }
@@ -98,6 +98,22 @@ static int keyword(char* str)
     if (!strcmp(str, "else"))
     {
         return T_ELSE;
+    }
+    if (!strcmp(str, "while"))
+    {
+        return T_WHILE;
+    }
+    if (!strcmp(str, "for"))
+    {
+        return T_FOR;
+    }
+    if (!strcmp(str, "void"))
+    {
+        return T_VOID;
+    }
+    if (!strcmp(str, "char"))
+    {
+        return T_CHAR;
     }
 
     return 0;
@@ -211,9 +227,7 @@ int scan(struct token* t)
                 break;
             }
 
-            char* errmsg = malloc(128);
-            snprintf(errmsg, 128, "Unrecognised character: '%c' on line %d", c, line);
-            error(errmsg);
+            syntax_error("Unrecognised character: '%c'", c);
     }
 
     return 1;

@@ -23,11 +23,6 @@ void asm_preamble()
     _asm_preamble();
 }
 
-void asm_postamble()
-{
-    _asm_postamble();
-}
-
 int asm_load(int val)
 {
     return _asm_load(val);
@@ -116,4 +111,14 @@ void asm_label(int label)
 void asm_jump(int label)
 {
     _asm_jump(label);
+}
+
+void asm_func_begin(char* name)
+{
+    _asm_func_begin(name);
+}
+
+void asm_func_end()
+{
+    _asm_func_end();
 }

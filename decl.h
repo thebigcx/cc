@@ -5,23 +5,28 @@
 int scan(struct token* t);
 char* concat(const char* s1, const char* s2);
 void error(const char* msg);
-void syntax_error(int line, const char* format, ...);
-struct ast_node* make_tree_node(int type, struct ast_node* left, struct ast_node* mid, struct ast_node* right, int intvalue);
-struct ast_node* make_tree_node_leaf(int type, int intvalue);
-struct ast_node* make_tree_node_unary(int type, struct ast_node* left, int intvalue);
+void syntax_error(const char* format, ...);
+struct ast_node* make_tree_node(int type, int dtype, struct ast_node* left, struct ast_node* mid, struct ast_node* right, int intvalue);
+struct ast_node* make_tree_node_leaf(int type, int dtype, int intvalue);
+struct ast_node* make_tree_node_unary(int type, int dtype, struct ast_node* left, int intvalue);
 int arithop(int tok);
 struct ast_node* binary_expr(int ptp);
 void next_token();
 
 void expect(int tok_type);
+struct ast_node* statement();
 struct ast_node* compound_statement();
 void var_decl_statement();
 struct ast_node* var_assign_statement();
 struct ast_node* if_statement();
+struct ast_node* while_statement();
+struct ast_node* for_statement();
+struct ast_node* func_decl_statement();
+int parse_type(int tok);
 
 // Symbol table
 int find_glob(char* s);
-int add_glob(char* name);
+int add_glob(char* name, int type);
 
 int gen_ast(struct ast_node* node, int reg, int parent);
 void gen_code();
@@ -31,7 +36,6 @@ int asm_alloc_register();
 void asm_free_register(int reg);
 
 void asm_preamble();
-void asm_postamble();
 int asm_load(int value);
 int asm_add(int reg1, int reg2);
 int asm_sub(int reg1, int reg2);
@@ -50,13 +54,14 @@ int asm_compare_and_set(int type, int r1, int r2);
 int asm_compare_and_jump(int type, int r1, int r2, int label);
 void asm_label(int label);
 void asm_jump(int label);
+void asm_func_begin(char* name);
+void asm_func_end();
 
 // Implementations (asm gen varies based on os)
 void _asm_free_all_registers();
 int _asm_alloc_register();
 void _asm_free_register(int reg);
 void _asm_preamble();
-void _asm_postamble();
 int _asm_load(int value);
 int _asm_add(int reg1, int reg2);
 int _asm_sub(int reg1, int reg2);
@@ -70,3 +75,8 @@ int _asm_compare_and_set(int type, int r1, int r2);
 int _asm_compare_and_jump(int type, int r1, int r2, int label);
 void _asm_label(int label);
 void _asm_jump(int label);
+void _asm_func_begin(char* name);
+void _asm_func_end();
+
+int type_size(int type);
+int compatible_types(int t1, int t2);

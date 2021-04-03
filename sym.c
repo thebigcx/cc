@@ -5,7 +5,6 @@ static int globs = 0;
 
 static int new_glob()
 {
-    globs++;
     if (globs >= 1024)
     {
         error("Too many symbols!");
@@ -15,7 +14,7 @@ static int new_glob()
 
 int find_glob(char* name)
 {
-    for (int i = 1; i < globs; i++)
+    for (int i = 0; i < globs; i++)
     {
         if (!strcmp(name, symbols[i].name))
         {
@@ -26,9 +25,10 @@ int find_glob(char* name)
     return -1;
 }
 
-int add_glob(char* name)
+int add_glob(char* name, int type)
 {
     int slot = new_glob();
     symbols[slot].name = name;
+    symbols[slot].type = type;
     return slot;
 }

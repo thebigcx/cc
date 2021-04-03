@@ -40,20 +40,6 @@ void _asm_preamble()
 
         "\t.text\n"
         "\t.global main\n"
-        "main:\n"
-        "\tpushq %rbp\n"
-        "\tmovq %rsp, %rbp\n"
-
-    , out_file);
-}
-
-void _asm_postamble()
-{
-    fputs(
-
-        "\tmovq %rbp, %rsp\n"
-        "\tpopq %rbp\n"
-        "\n"
 
     , out_file);
 }
@@ -75,7 +61,7 @@ int _asm_add(int reg1, int reg2)
 
 int _asm_sub(int reg1, int reg2)
 {
-    fprintf(out_file, "\tsubq %s, %s\n", registers[reg1], registers[reg2]);
+    fprintf(out_file, "\tsubq %s, %s\n", registers[reg2], registers[reg1]);
     asm_free_register(reg2);
     return reg1;
 }
@@ -99,20 +85,42 @@ int _asm_div(int reg1, int reg2)
 
 void _asm_glob_sym(char* sym)
 {
-    fprintf(out_file, "\t.comm %s, 8, 8\n", sym);
+    if (symbols[find_glob(sym)].type == P_INT)
+    {
+        fprintf(out_file, "\t.comm %s, 8, 8\n", sym);
+    }
+    else if (symbols[find_glob(sym)].type == P_CHAR)
+    {
+        fprintf(out_file, "\t.comm %s, 1, 1\n", sym);
+    }
 }
 
 int _asm_load_glob(char* identifier)
 {
     int r = _asm_alloc_register();
 
-    fprintf(out_file, "\tmovq %s(%%rip), %s\n", identifier, registers[r]);
+    if (symbols[find_glob(identifier)].type == P_INT)
+    {
+        fprintf(out_file, "\tmovq %s(%%rip), %s\n", identifier, registers[r]);
+    }
+    else if (symbols[find_glob(identifier)].type == P_CHAR)
+    {
+        fprintf(out_file, "\tmovzbq %s(%%rip), %s\n", identifier, registers[r]);
+    }
+
     return r;
 }
 
 int _asm_store_glob(int r, char* identifier)
 {
-    fprintf(out_file, "\tmovq %s, %s(%%rip)\n", registers[r], identifier);
+    if (symbols[find_glob(identifier)].type == P_INT)
+    {
+        fprintf(out_file, "\tmovq %s, %s(%%rip)\n", registers[r], identifier);
+    }
+    else if (symbols[find_glob(identifier)].type == P_CHAR)
+    {
+        fprintf(out_file, "\tmovb %s, %s(%%rip)\n", bregisters[r], identifier);
+    }
 }
 
 int _asm_compare(int r1, int r2, char* how)
@@ -152,4 +160,18 @@ void _asm_label(int label)
 void _asm_jump(int label)
 {
     fprintf(out_file, "\tjmp L%d\n", label);
+}
+
+void _asm_func_begin(char* name)
+{
+    fprintf(out_file, "%s:\n", name);
+    fprintf(out_file, "\tpushq %%rbp\n");
+    fprintf(out_file, "\tmovq %%rsp, %%rbp\n");
+}
+
+void _asm_func_end()
+{
+    fprintf(out_file, "\tmovq %%rbp, %%rsp\n");
+    fprintf(out_file, "\tpopq %%rbp\n");
+    fprintf(out_file, "\tret\n\n");
 }

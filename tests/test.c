@@ -1,10 +1,11 @@
+void main()
 {
     int x;
     x = 10;
+    char y;
 
-    if (x < 40)
+    for (y = 0; y < 10; y = y + 1)
     {
-        x = 0;
+        y = y - 1;
     }
 }
-

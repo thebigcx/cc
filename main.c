@@ -19,11 +19,6 @@ static void print_tokens(struct token_array array)
     }
 }
 
-static struct ast_node* make_ast()
-{
-    return binary_expr(0);
-}
-
 static struct token_array scan_file()
 {
     struct token_array array;
@@ -50,17 +45,22 @@ static struct token_array scan_file()
     return array;
 }
 
-void next_token()
+void make_file_lines(char* file_name)
 {
-    tok_head_pos++;
-    current_tok = tok_array.data[tok_head_pos];
+    FILE* file = fopen(file_name, "r");
+    char* line = NULL;
+    size_t len = 0;
+    ssize_t read;
 
-    while (current_tok.type == T_NEWLINE)
+    int i = 0;
+    while ((read = getline(&line, &len, file)) != -1)
     {
-        line++;
-        tok_head_pos++;
-        current_tok = tok_array.data[tok_head_pos];
+        input_lines[i + 1] = malloc(128);
+        strcpy(input_lines[i + 1], line);
+        i++;
     }
+
+    fclose(file);
 }
 
 int main(int argc, char** argv)
@@ -79,9 +79,9 @@ int main(int argc, char** argv)
 
     if (!file)
     {
-        char* msg = concat(file_name, ": No such file or directory");
+        char msg[64];
+        snprintf(msg, 64, "%s: No such file or directory", file_name);
         error(msg);
-        free(msg);
     }
 
     fseek(file, 0l, SEEK_END);
@@ -91,8 +91,11 @@ int main(int argc, char** argv)
     input = calloc(1, size + 1);
     fread(input, size, 1, file);
     input[size] = EOF;
+    fclose(file);
 
-    line = 1;
+    make_file_lines(file_name);
+
+    current_line = 1;
     tok_array = scan_file();
     //print_tokens(tok_array);
 
@@ -100,13 +103,12 @@ int main(int argc, char** argv)
     next_token();
 
     out_file = fopen("out.s", "w");
-    line = 1;
+    current_line = 1;
     gen_code();
     fclose(out_file);
 
     system("gcc -no-pie out.s");
 
-    fclose(file);
     free(input);
 
     return 0;

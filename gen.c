@@ -38,14 +38,47 @@ static int gen_if_tree(struct ast_node* node)
     }
 }
 
+static int gen_while_tree(struct ast_node* node)
+{
+    int l_top, l_end;
+    
+    l_top = label();
+    l_end = label();
+
+    asm_label(l_top);
+
+    gen_ast(node->left, l_end, node->type);
+    asm_free_all_registers();
+
+    gen_ast(node->right, NOREG, node->type);
+    asm_free_all_registers();
+
+    asm_jump(l_top);
+    asm_label(l_end);
+
+    return NOREG;
+}
+
 int gen_ast(struct ast_node* node, int reg, int parent)
 {
-    int left, right;
+    int left = -1, right = -1;
+
+    if (!node)
+    {
+        return -1;
+    }
 
     switch (node->type)
     {
         case N_IF:
             return gen_if_tree(node);
+        case N_WHILE:
+            return gen_while_tree(node);
+        case N_FUNCTION:
+            asm_func_begin(symbols[node->v.id].name);
+            gen_ast(node->left, NOREG, node->type);
+            asm_func_end();
+            return NOREG;
         case N_GLUE:
             gen_ast(node->left, NOREG, node->type);
             asm_free_all_registers();
@@ -79,7 +112,7 @@ int gen_ast(struct ast_node* node, int reg, int parent)
         case N_LT:
         case N_GE:
         case N_LE:
-            if (parent == N_IF)
+            if (parent == N_IF || parent == N_WHILE)
             {
                 return asm_compare_and_jump(node->type, left, right, reg);
             }
@@ -101,7 +134,13 @@ int gen_ast(struct ast_node* node, int reg, int parent)
 void gen_code()
 {
     asm_preamble();
-    struct ast_node* tree = compound_statement();
-    gen_ast(tree, NOREG, 0);
-    asm_postamble();
+    while (1)
+    {
+        struct ast_node* tree = func_decl_statement();
+        gen_ast(tree, NOREG, 0);
+        if (current_tok.type == T_EOF)
+        {
+            break;
+        }
+    }
 }
