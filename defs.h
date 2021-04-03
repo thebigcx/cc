@@ -13,7 +13,7 @@ enum TOKENS
     T_LT, T_GT, T_LE, T_GE,
     T_INTLIT, T_SEMI_COLON, T_ASSIGN, T_IDENT,
     T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN,
-    T_INT, T_IF, T_ELSE, T_WHILE, T_FOR, T_VOID, T_CHAR,
+    T_INT, T_IF, T_ELSE, T_WHILE, T_FOR, T_VOID, T_CHAR, T_LONG, T_RETURN,
 
     T_NEWLINE
 };
@@ -40,7 +40,7 @@ enum NODES
 {
     N_ADD, N_SUB, N_MULT, N_DIV,
     N_EQ, N_NE, N_LT, N_GT, N_LE, N_GE,
-    N_INTLIT, N_IDENT, N_ASSIGN, N_LVIDENT, N_GLUE, N_IF, N_WHILE, N_FOR, N_FUNCTION
+    N_INTLIT, N_IDENT, N_ASSIGN, N_LVIDENT, N_GLUE, N_IF, N_WHILE, N_FOR, N_FUNCTION, N_FUNCCALL, N_RETURN
 };
 
 struct ast_node
@@ -63,11 +63,12 @@ struct sym
 {
     char* name;
     int type;
+    int endlabel;
 };
 
 enum TYPES
 {
-    P_NONE, P_VOID, P_INT, P_CHAR
+    P_NONE, P_VOID, P_INT, P_CHAR, P_LONG
 };
 
 extern const char* type_strings[];

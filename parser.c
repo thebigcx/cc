@@ -97,6 +97,11 @@ static struct ast_node* primary()
     switch (current_tok.type)
     {
         case T_INTLIT:
+            if (tok_array.data[tok_head_pos + 1].type == T_LPAREN)
+            {
+                return func_call();
+            }
+
             if (current_tok.v.int_value >= 0 && current_tok.v.int_value < 256)
             {
                 node = make_tree_node_leaf(N_INTLIT, P_CHAR, current_tok.v.int_value);
@@ -162,10 +167,15 @@ struct ast_node* var_assign_statement()
     char* ident_name = current_tok.v.str_value;
     expect(T_IDENT);
 
-    id = find_glob(current_tok.v.str_value); // Identifier name
+    if (current_tok.type == T_LPAREN)
+    {
+        return func_call();
+    }
+
+    id = find_glob(ident_name); // Identifier name
     if (id == -1)
     {
-        syntax_error("Undeclared variable '%s'", current_tok.v.str_value);
+        syntax_error("Undeclared variable '%s'", ident_name);
     }
 
     right = make_tree_node_leaf(N_LVIDENT, symbols[id].type, id);
@@ -190,8 +200,8 @@ void var_decl_statement()
     char* var_name = current_tok.v.str_value;
     expect(T_IDENT);
 
-    add_glob(current_tok.v.str_value, type);
-    asm_glob_sym(current_tok.v.str_value);
+    int id = add_glob(current_tok.v.str_value, type, 0);
+    asm_glob_sym(id);
 
     expect(T_SEMI_COLON);
 }
@@ -269,7 +279,8 @@ struct ast_node* func_decl_statement()
     int type = parse_type(current_tok.type);
     next_token();
     char* name = current_tok.v.str_value;
-    nameslot = add_glob(name, type);
+    nameslot = add_glob(name, type, label());
+    func_id = nameslot;
     expect(T_IDENT);
     expect(T_LPAREN);
     expect(T_RPAREN);
@@ -277,6 +288,33 @@ struct ast_node* func_decl_statement()
     tree = compound_statement();
 
     return make_tree_node_unary(N_FUNCTION, P_VOID, tree, nameslot);
+}
+
+struct ast_node* return_statement()
+{
+    struct ast_node* tree;
+    int return_type, func_type;
+
+    if (symbols[func_id].type == P_VOID)
+    {
+        syntax_error("Attempted to return from void function");
+    }
+
+    expect(T_RETURN);
+    
+    tree = binary_expr(0);
+
+    return_type = tree->dtype;
+    func_type = symbols[func_id].type;
+    
+    if (!compatible_types(return_type, func_type))
+    {
+        syntax_error("Incompatible return type '%s' in function returning '%s'", type_strings[return_type], type_strings[func_type]);
+    }
+
+    tree = make_tree_node_unary(N_RETURN, P_NONE, tree, 0);
+
+    return tree;
 }
 
 struct ast_node* statement()
@@ -299,6 +337,8 @@ struct ast_node* statement()
             return while_statement();
         case T_FOR:
             return for_statement();
+        case T_RETURN:
+            return return_statement();
         default:
             syntax_error("Unexpected token '%s'", token_strings[current_tok.type]);
     }
@@ -312,10 +352,16 @@ struct ast_node* compound_statement()
     expect(T_LBRACE);
 
     while (1)
-    {   
+    {
+        if (current_tok.type == T_RBRACE)
+        {
+            expect(T_RBRACE);
+            return left;
+        }
+
         tree = statement();
 
-        if (tree != NULL && tree->type == N_ASSIGN)
+        if (tree != NULL && (tree->type == N_ASSIGN || tree->type == N_FUNCCALL || tree->type == N_RETURN))
         {
             expect(T_SEMI_COLON);
         }
@@ -331,13 +377,28 @@ struct ast_node* compound_statement()
                 left = make_tree_node(N_GLUE, P_NONE, left, NULL, tree, 0);
             }
         }
-
-        if (current_tok.type == T_RBRACE)
-        {
-            expect(T_RBRACE);
-            return left;
-        }
     }
+}
+
+struct ast_node* func_call()
+{
+    struct ast_node* tree;
+    int id;
+
+    id = find_glob(current_tok.v.str_value);
+    if (id == -1)
+    {
+        syntax_error("Undeclared function '%s'", current_tok.v.str_value);
+    }
+
+    expect(T_LPAREN);
+
+    tree = binary_expr(0);
+
+    tree = make_tree_node_unary(N_FUNCCALL, symbols[id].type, tree, id);
+
+    expect(T_RPAREN);
+    return tree;
 }
 
 void expect(int tok_type)
@@ -364,21 +425,8 @@ int parse_type(int tok)
             return P_INT;
         case T_VOID:
             return P_VOID;
-    }
-}
-
-int type_size(int type)
-{
-    switch (type)
-    {
-        case P_NONE:
-            return 0;
-        case P_VOID:
-            return 0;
-        case P_CHAR:
-            return 1;
-        case P_INT:
-            return 4;
+        case T_LONG:
+            return P_LONG;
     }
 }
 

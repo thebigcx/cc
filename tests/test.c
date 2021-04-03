@@ -1,3 +1,14 @@
+void hello()
+{
+    int o;
+    o = 10;
+}
+
+int printf()
+{
+    return 0;
+}
+
 void main()
 {
     int x;
@@ -7,5 +18,6 @@ void main()
     for (y = 0; y < 10; y = y + 1)
     {
         y = y - 1;
+        printf(8);
     }
 }

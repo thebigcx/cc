@@ -48,19 +48,19 @@ int asm_div(int reg1, int reg2)
     return _asm_div(reg1, reg2);
 }
 
-void asm_glob_sym(char* sym)
+void asm_glob_sym(int id)
 {
-    _asm_glob_sym(sym);
+    _asm_glob_sym(id);
 }
 
-int asm_load_glob(char* identifier)
+int asm_load_glob(int id)
 {
-    return _asm_load_glob(identifier);
+    return _asm_load_glob(id);
 }
 
-int asm_store_glob(int r, char* identifier)
+int asm_store_glob(int r, int id)
 {
-    return _asm_store_glob(r, identifier);
+    return _asm_store_glob(r, id);
 }
 
 int asm_equal(int r1, int r2)
@@ -113,12 +113,27 @@ void asm_jump(int label)
     _asm_jump(label);
 }
 
-void asm_func_begin(char* name)
+void asm_func_begin(int id)
 {
-    _asm_func_begin(name);
+    _asm_func_begin(id);
 }
 
-void asm_func_end()
+void asm_func_end(int func_id)
 {
-    _asm_func_end();
+    _asm_func_end(func_id);
+}
+
+int asm_call(int r, int id)
+{
+    return _asm_call(r, id);
+}
+
+int asm_size(int datatype)
+{
+    return _asm_size(datatype);
+}
+
+void asm_return(int r, int func_id)
+{
+    _asm_return(r, func_id);
 }

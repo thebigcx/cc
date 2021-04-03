@@ -5,6 +5,7 @@
 
 static int free_regs[4];
 static const char* registers[] = { "%r8", "%r9", "%r10", "%r11" }; // 64-bit registers
+static const char* dregisters[] = { "%r8d", "%r9d", "%r10d", "%r11d" };
 static const char* bregisters[] = { "%r8b", "%r9b", "%r10b", "%r11b" }; // 8-bit registers
 
 void _asm_free_all_registers()
@@ -83,44 +84,50 @@ int _asm_div(int reg1, int reg2)
     return reg1;
 }
 
-void _asm_glob_sym(char* sym)
+void _asm_glob_sym(int id)
 {
-    if (symbols[find_glob(sym)].type == P_INT)
-    {
-        fprintf(out_file, "\t.comm %s, 8, 8\n", sym);
-    }
-    else if (symbols[find_glob(sym)].type == P_CHAR)
-    {
-        fprintf(out_file, "\t.comm %s, 1, 1\n", sym);
-    }
+    int size = asm_size(symbols[id].type);
+    fprintf(out_file, "\t.comm %s, %d, %d\n", symbols[id].name, size, size);
 }
 
-int _asm_load_glob(char* identifier)
+int _asm_load_glob(int id)
 {
     int r = _asm_alloc_register();
+    char* name = symbols[id].name;
 
-    if (symbols[find_glob(identifier)].type == P_INT)
+    switch (symbols[id].type)
     {
-        fprintf(out_file, "\tmovq %s(%%rip), %s\n", identifier, registers[r]);
-    }
-    else if (symbols[find_glob(identifier)].type == P_CHAR)
-    {
-        fprintf(out_file, "\tmovzbq %s(%%rip), %s\n", identifier, registers[r]);
+        case P_INT:
+            fprintf(out_file, "\tmovzbl %s(%%rip), %s\n", name, registers[r]);
+            break;
+        case P_CHAR:
+            fprintf(out_file, "\tmovzbq %s(%%rip), %s\n", name, registers[r]);
+            break;
+        case P_LONG:
+            fprintf(out_file, "\tmovq %s(%%rip), %s\n", name, registers[r]);
+            break;
     }
 
     return r;
 }
 
-int _asm_store_glob(int r, char* identifier)
+int _asm_store_glob(int r, int id)
 {
-    if (symbols[find_glob(identifier)].type == P_INT)
+    char* name = symbols[id].name;
+    switch (symbols[id].type)
     {
-        fprintf(out_file, "\tmovq %s, %s(%%rip)\n", registers[r], identifier);
+        case P_INT:
+            fprintf(out_file, "\tmovl %s, %s(%%rip)\n", dregisters[r], name);
+            break;
+        case P_CHAR:
+            fprintf(out_file, "\tmovb %s, %s(%%rip)\n", bregisters[r], name);
+            break;
+        case P_LONG:
+            fprintf(out_file, "\tmovq %s, %s(%%rip)\n", registers[r], name);
+            break;
     }
-    else if (symbols[find_glob(identifier)].type == P_CHAR)
-    {
-        fprintf(out_file, "\tmovb %s, %s(%%rip)\n", bregisters[r], identifier);
-    }
+
+    return r;
 }
 
 int _asm_compare(int r1, int r2, char* how)
@@ -162,16 +169,62 @@ void _asm_jump(int label)
     fprintf(out_file, "\tjmp L%d\n", label);
 }
 
-void _asm_func_begin(char* name)
+void _asm_func_begin(int id)
 {
-    fprintf(out_file, "%s:\n", name);
+    fprintf(out_file, "%s:\n", symbols[id].name);
     fprintf(out_file, "\tpushq %%rbp\n");
     fprintf(out_file, "\tmovq %%rsp, %%rbp\n");
 }
 
-void _asm_func_end()
+void _asm_func_end(int func_id)
 {
+    asm_label(symbols[func_id].endlabel);
     fprintf(out_file, "\tmovq %%rbp, %%rsp\n");
     fprintf(out_file, "\tpopq %%rbp\n");
     fprintf(out_file, "\tret\n\n");
+}
+
+int _asm_call(int r, int id)
+{
+    int out = asm_alloc_register();
+    fprintf(out_file, "\tmovq %s, %%rdi\n", registers[r]);
+    fprintf(out_file, "\tcall %s\n", symbols[id].name);
+    fprintf(out_file, "\tmovq %%rax, %s\n", registers[out]);
+    asm_free_register(r);
+    return out;
+}
+
+int _asm_size(int datatype)
+{
+    switch (datatype)
+    {
+        case P_NONE:
+            return 0;
+        case P_VOID:
+            return 0;
+        case P_CHAR:
+            return 1;
+        case P_INT:
+            return 4;
+        case P_LONG:
+            return 8;
+    }
+}
+
+void _asm_return(int r, int func_id)
+{
+    switch (symbols[func_id].type)
+    {
+        case P_INT:
+            fprintf(out_file, "\tmovl %s, %%eax\n", dregisters[r]);
+            break;
+        case P_CHAR:
+            fprintf(out_file, "\tmovzbl %s, %%eax", bregisters[r]);
+            break;
+        case P_LONG:
+            fprintf(out_file, "\tmovq %s, %%rax\n", registers[r]);
+            break;
+    }
+
+    asm_jump(symbols[func_id].endlabel);
 }

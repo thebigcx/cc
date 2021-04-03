@@ -1,7 +1,7 @@
 #include "decl.h"
 #include "data.h"
 
-static int label()
+int label()
 {
     static int id = 1;
     return id++;
@@ -75,9 +75,9 @@ int gen_ast(struct ast_node* node, int reg, int parent)
         case N_WHILE:
             return gen_while_tree(node);
         case N_FUNCTION:
-            asm_func_begin(symbols[node->v.id].name);
+            asm_func_begin(node->v.id);
             gen_ast(node->left, NOREG, node->type);
-            asm_func_end();
+            asm_func_end(node->v.id);
             return NOREG;
         case N_GLUE:
             gen_ast(node->left, NOREG, node->type);
@@ -123,11 +123,15 @@ int gen_ast(struct ast_node* node, int reg, int parent)
         case N_INTLIT:
             return asm_load(node->v.intvalue);
         case N_IDENT:
-            return asm_load_glob(symbols[node->v.id].name);
+            return asm_load_glob(node->v.id);
         case N_LVIDENT:
-            return asm_store_glob(reg, symbols[node->v.id].name);
+            return asm_store_glob(reg, node->v.id);
         case N_ASSIGN:
             return right;
+        case N_FUNCCALL:
+            return asm_call(left, node->v.id);
+        case N_RETURN:
+            asm_return(left, node->v.id);
     }
 }
 

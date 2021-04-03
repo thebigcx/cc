@@ -25,10 +25,11 @@ int find_glob(char* name)
     return -1;
 }
 
-int add_glob(char* name, int type)
+int add_glob(char* name, int type, int endlabel)
 {
     int slot = new_glob();
     symbols[slot].name = name;
     symbols[slot].type = type;
+    symbols[slot].endlabel = endlabel;
     return slot;
 }
