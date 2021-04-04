@@ -3,7 +3,7 @@
 #include "decl.h"
 
 const char* token_strings[] = {
-    "EOF", "+", "-", "*", "/", "==", "!=", "<", ">", "<=", ">=", "intlit", ";", "=", "identifier", "{", "}", "(", ")", "int", "if", "else", "while", "for", "void", "char", "long", "return", "\\n"
+    "EOF", "=", "+", "-", "*", "/", "==", "!=", "<", ">", "<=", ">=", "intlit", ";", "identifier", "{", "}", "(", ")", "int", "if", "else", "while", "for", "void", "char", "long", "return", "&", "short", "\\n"
 };
 
 static char identifier_buf[32];
@@ -123,6 +123,10 @@ static int keyword(char* str)
     {
         return T_RETURN;
     }
+    if (!strcmp(str, "short"))
+    {
+        return T_SHORT;
+    }
 
     return 0;
 }
@@ -209,6 +213,9 @@ int scan(struct token* t)
             break;
         case ')':
             t->type = T_RPAREN;
+            break;
+        case '&':
+            t->type = T_AMPER;
             break;
         default:
             if (isdigit(c))

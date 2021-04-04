@@ -123,15 +123,37 @@ int gen_ast(struct ast_node* node, int reg, int parent)
         case N_INTLIT:
             return asm_load(node->v.intvalue);
         case N_IDENT:
-            return asm_load_glob(node->v.id);
-        case N_LVIDENT:
-            return asm_store_glob(reg, node->v.id);
+            if (node->rvalue || parent == N_DEREF)
+            {
+                return asm_load_glob(node->v.id);
+            }
+            else
+            {
+                return NOREG;
+            }
         case N_ASSIGN:
-            return right;
+            switch (node->right->type)
+            {
+                case N_IDENT:
+                    return asm_store_glob(left, node->right->v.id);
+                case N_DEREF:
+                    return asm_store_deref(left, right, node->right->dtype);
+            }
         case N_FUNCCALL:
             return asm_call(left, node->v.id);
         case N_RETURN:
             asm_return(left, node->v.id);
+        case N_ADDROF:
+            return asm_addrof(node->v.id);
+        case N_DEREF:
+            if (node->rvalue)
+            {
+                return asm_deref(left, node->left->dtype);
+            }
+            else
+            {
+                return left;
+            }
     }
 }
 

@@ -1,23 +1,22 @@
-void hello()
-{
-    int o;
-    o = 10;
-}
-
-int printf()
+int* pointer()
 {
     return 0;
 }
 
 void main()
 {
-    int x;
-    x = 10;
-    char y;
+    int o;
+    int p;
+    o = p = 10;
+    
+    short s;
+    s = 7000;
 
-    for (y = 0; y < 10; y = y + 1)
-    {
-        y = y - 1;
-        printf(8);
-    }
+    short s2;
+    s2 = s;
+
+    int* ptr;
+    ptr = &o;
+    *ptr = 100;
+    ptr = pointer(10);
 }

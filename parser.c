@@ -1,7 +1,7 @@
 #include "decl.h"
 #include "data.h"
 
-const char* type_strings[] = { "none", "void", "int", "char" };
+const char* type_strings[] = { "none", "void", "int", "char", "long", "short", "void*", "int*", "char*", "long*", "short*" };
 
 static void print_current_token()
 {
@@ -71,12 +71,14 @@ int arithop(int tok)
             return N_GT;
         case T_GE:
             return N_GE;
+        case T_ASSIGN:
+            return N_ASSIGN;
         default:
-            syntax_error("Expected arithmetic operator, got %s", token_strings[tok]);
+            syntax_error("Expected arithmetic operator, got '%s'", token_strings[tok]);
     }
 }
 
-static int op_prec[] = { 0, 10, 10, 20, 20, 30, 30, 40, 40, 40, 40 };
+static int op_prec[] = { 0, 10, 20, 20, 30, 30, 40, 40, 50, 50, 50, 50 };
 
 static int op_precedence(int tok_type)
 {
@@ -89,6 +91,15 @@ static int op_precedence(int tok_type)
     return prec;
 }
 
+static int rightassoc(int tok_type)
+{
+    if (tok_type == T_ASSIGN)
+    {
+        return 1;
+    }
+    return 0;
+}
+
 static struct ast_node* primary()
 {
     struct ast_node* node;
@@ -97,22 +108,30 @@ static struct ast_node* primary()
     switch (current_tok.type)
     {
         case T_INTLIT:
+            if (current_tok.v.int_value < 256)
+            {
+                node = make_tree_node_leaf(N_INTLIT, P_CHAR, current_tok.v.int_value);
+            }
+            else if (current_tok.v.int_value < 65536)
+            {
+                node = make_tree_node_leaf(N_INTLIT, P_SHORT, current_tok.v.int_value);
+            }
+            else if (current_tok.v.int_value < 4294967296)
+            {
+                node = make_tree_node_leaf(N_INTLIT, P_INT, current_tok.v.int_value);
+            }
+            else
+            {
+                node = make_tree_node_leaf(N_INTLIT, P_LONG, current_tok.v.int_value);
+            }
+            
+            break;
+        case T_IDENT:
             if (tok_array.data[tok_head_pos + 1].type == T_LPAREN)
             {
                 return func_call();
             }
 
-            if (current_tok.v.int_value >= 0 && current_tok.v.int_value < 256)
-            {
-                node = make_tree_node_leaf(N_INTLIT, P_CHAR, current_tok.v.int_value);
-            }
-            else
-            {
-                node = make_tree_node_leaf(N_INTLIT, P_INT, current_tok.v.int_value);
-            }
-            
-            break;
-        case T_IDENT:
             id = find_glob(current_tok.v.str_value);
             if (id == -1)
             {
@@ -131,66 +150,57 @@ static struct ast_node* primary()
 
 struct ast_node* binary_expr(int ptp)
 {
-    struct ast_node* left, *right;
+    struct ast_node* left, *right, *ltemp, *rtemp;
+    int ast_op;
     int tok_type;
 
-    left = primary();
+    left = prefix(); // Calls primary as well
 
     tok_type = current_tok.type;
     if (tok_type == T_SEMI_COLON || tok_type == T_RPAREN)
     {
+        left->rvalue = 1;
         return left;
     }
 
-    while (op_precedence(tok_type) > ptp)
+    while (op_precedence(tok_type) > ptp || (rightassoc(tok_type) && op_precedence(tok_type) == ptp))
     {
         next_token();
 
         right = binary_expr(op_prec[tok_type]);
+        ast_op = arithop(tok_type);
+
+        if (ast_op == N_ASSIGN)
+        {
+            right->rvalue = 1;
+
+            if (!compatible_types(right->dtype, left->dtype))
+            {
+                syntax_error("Incompatible types '%s' and '%s' in assignment.", type_strings[right->dtype], type_strings[left->dtype]);
+            }
+
+            ltemp = left;
+            left = right;
+            right = ltemp;
+        }
+        else
+        {
+            left->rvalue = 1;
+            right->rvalue = 1;
+        }
+
         left = make_tree_node(arithop(tok_type), left->dtype, left, NULL, right, 0);
 
         tok_type = current_tok.type;
         if (tok_type == T_SEMI_COLON || tok_type == T_RPAREN)
         {
+            left->rvalue = 1;
             return left;
         }
     }
 
+    left->rvalue = 1;
     return left;
-}
-
-struct ast_node* var_assign_statement()
-{
-    struct ast_node* node, *left, *right;
-    int id;
-
-    char* ident_name = current_tok.v.str_value;
-    expect(T_IDENT);
-
-    if (current_tok.type == T_LPAREN)
-    {
-        return func_call();
-    }
-
-    id = find_glob(ident_name); // Identifier name
-    if (id == -1)
-    {
-        syntax_error("Undeclared variable '%s'", ident_name);
-    }
-
-    right = make_tree_node_leaf(N_LVIDENT, symbols[id].type, id);
-    
-    expect(T_ASSIGN);
-
-    left = binary_expr(0);
-    if (!compatible_types(left->dtype, right->dtype))
-    {
-        syntax_error("Incompatible types %s and %s", type_strings[left->dtype], type_strings[right->dtype]);
-    }
-
-    node = make_tree_node(N_ASSIGN, P_INT, left, NULL, right, 0);
-
-    return node;
 }
 
 void var_decl_statement()
@@ -317,16 +327,43 @@ struct ast_node* return_statement()
     return tree;
 }
 
+struct ast_node* prefix()
+{
+    struct ast_node* tree;
+
+    switch (current_tok.type)
+    {
+        case T_AMPER:
+            next_token();
+            tree = prefix();
+
+            tree->type = N_ADDROF;
+            tree->dtype = make_pointer(tree->dtype);
+            break;
+        case T_STAR:
+            next_token();
+            tree = prefix();
+
+            tree = make_tree_node_unary(N_DEREF, pointed_to_type(tree->dtype), tree, 0);
+            break;
+        default:
+            tree = primary();
+            break;
+    }
+
+    return tree;
+}
+
 struct ast_node* statement()
 {
     switch (current_tok.type)
     {
         case T_CHAR:
         case T_INT:
+        case T_LONG:
+        case T_SHORT:
             var_decl_statement();
             return NULL;
-        case T_IDENT:
-            return var_assign_statement();
         case T_NEWLINE:
             next_token();
             current_line++;
@@ -340,8 +377,10 @@ struct ast_node* statement()
         case T_RETURN:
             return return_statement();
         default:
-            syntax_error("Unexpected token '%s'", token_strings[current_tok.type]);
+            return binary_expr(0);
     }
+
+    return NULL;
 }
 
 struct ast_node* compound_statement()
@@ -391,6 +430,7 @@ struct ast_node* func_call()
         syntax_error("Undeclared function '%s'", current_tok.v.str_value);
     }
 
+    next_token();
     expect(T_LPAREN);
 
     tree = binary_expr(0);
@@ -417,17 +457,42 @@ void expect(int tok_type)
 
 int parse_type(int tok)
 {
+    int type;
     switch (tok)
     {
         case T_CHAR:
-            return P_CHAR;
+            type = P_CHAR;
+            break;
         case T_INT:
-            return P_INT;
+            type = P_INT;
+            break;
         case T_VOID:
-            return P_VOID;
+            type = P_VOID;
+            break;
         case T_LONG:
-            return P_LONG;
+            type = P_LONG;
+            break;
+        case T_SHORT:
+            type = P_SHORT;
     }
+
+    if (tok_array.data[tok_head_pos + 1].type == T_STAR)
+    {
+        next_token();
+        return make_pointer(type);
+    }
+
+    return type;
+}
+
+int pointer_type(int type)
+{
+    return type == P_VOIDPTR || type == P_INTPTR || type == P_SHORTPTR || type == P_CHARPTR || type == P_LONGPTR;
+}
+
+int integral_type(int type)
+{
+    return type == P_CHAR || type == P_INT || type == P_SHORT || type == P_LONG || pointer_type(type);
 }
 
 int compatible_types(int t1, int t2)
@@ -436,14 +501,48 @@ int compatible_types(int t1, int t2)
     {
         return 1;
     }
-    else if (t1 == P_INT && t2 == P_CHAR)
-    {
-        return 1;
-    }
-    else if (t1 == P_CHAR && t2 == P_INT)
+    else if (integral_type(t1) && integral_type(t2))
     {
         return 1;
     }
 
     return 0;
+}
+
+int make_pointer(int base_type)
+{
+    switch (base_type)
+    {
+        case P_VOID:
+            return P_VOIDPTR;
+        case P_INT:
+            return P_INTPTR;
+        case P_CHAR:
+            return P_CHARPTR;
+        case P_LONG:
+            return P_LONGPTR;
+        case P_SHORT:
+            return P_SHORTPTR;
+        default:
+            syntax_error("Invalid base pointer type '%s'", type_strings[base_type]);
+    }
+}
+
+int pointed_to_type(int ptr_type)
+{
+    switch (ptr_type)
+    {
+        case P_VOIDPTR:
+            return P_VOID;
+        case P_INTPTR:
+            return P_INT;
+        case P_CHARPTR:
+            return P_CHAR;
+        case P_LONGPTR:
+            return P_LONG;
+        case P_SHORTPTR:
+            return P_SHORT;
+        default:
+            syntax_error("Invalid pointer type '%s'", type_strings[ptr_type]);
+    }
 }

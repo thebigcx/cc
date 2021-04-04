@@ -137,3 +137,18 @@ void asm_return(int r, int func_id)
 {
     _asm_return(r, func_id);
 }
+
+int asm_addrof(int id)
+{
+    return _asm_addrof(id);
+}
+
+int asm_deref(int r, int type)
+{
+    return _asm_deref(r, type);
+}
+
+int asm_store_deref(int r1, int r2, int type)
+{
+    return _asm_store_deref(r1, r2, type);
+}

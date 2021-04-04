@@ -1,3 +1,5 @@
+#include <unistd.h>
+
 #include "defs.h"
 #define extern_
 #include "data.h"
@@ -63,18 +65,50 @@ void make_file_lines(char* file_name)
     fclose(file);
 }
 
-int main(int argc, char** argv)
+void print_usage()
 {
+    printf("usage: compiler <input_file>\n");
+}
+
+int main(int argc, char* argv[])
+{
+    char* file_name = NULL;
+    char* output_name = NULL;
     FILE* file;
     long size;
+    int opt;
+    int output_assembly = 0;
 
-    if (argc < 2)
+    while ((opt = getopt(argc, argv, "s:o:S")) != -1)
     {
-        printf("usage: compiler <input_file>\n");
-        exit(-1);
+        switch (opt)
+        {
+            case 's':
+                file_name = optarg;
+                break;
+            case 'S':
+                output_assembly = 1;
+                break;
+            case 'o':
+                output_name = optarg;
+                break;
+            default:
+                print_usage();
+                exit(0);
+        }
     }
 
-    char* file_name = argv[1];
+    if (file_name == NULL)
+    {
+        error("No input file");
+    }
+
+    if (output_name == NULL)
+    {
+        output_name = malloc(6);
+        strcpy(output_name, "a.out");
+    }
+
     file = fopen(file_name, "rb");
 
     if (!file)
@@ -102,12 +136,23 @@ int main(int argc, char** argv)
     tok_head_pos = -1;
     next_token();
 
-    out_file = fopen("out.s", "w");
+    char assembly_output_name[128];
+    snprintf(assembly_output_name, 128, "%s.s", output_name);
+
+    out_file = fopen(assembly_output_name, "w");
     current_line = 1;
     gen_code();
     fclose(out_file);
 
-    system("gcc -no-pie out.s");
+    char assemble_cmd[256];
+    snprintf(assemble_cmd, 256, "gcc -no-pie %s -o %s", assembly_output_name, output_name);
+
+    system(assemble_cmd);
+
+    if (!output_assembly)
+    {
+        remove(assembly_output_name);
+    }
 
     free(input);
 
