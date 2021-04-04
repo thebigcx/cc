@@ -72,7 +72,6 @@ void print_usage()
 
 int main(int argc, char* argv[])
 {
-    char* file_name = NULL;
     char* output_name = NULL;
     FILE* file;
     long size;
@@ -84,7 +83,7 @@ int main(int argc, char* argv[])
         switch (opt)
         {
             case 's':
-                file_name = optarg;
+                current_file = optarg;
                 break;
             case 'S':
                 output_assembly = 1;
@@ -98,7 +97,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    if (file_name == NULL)
+    if (current_file == NULL)
     {
         error("No input file");
     }
@@ -109,12 +108,12 @@ int main(int argc, char* argv[])
         strcpy(output_name, "a.out");
     }
 
-    file = fopen(file_name, "rb");
+    file = fopen(current_file, "rb");
 
     if (!file)
     {
         char msg[64];
-        snprintf(msg, 64, "%s: No such file or directory", file_name);
+        snprintf(msg, 64, "%s: No such file or directory", current_file);
         error(msg);
     }
 
@@ -127,7 +126,7 @@ int main(int argc, char* argv[])
     input[size] = EOF;
     fclose(file);
 
-    make_file_lines(file_name);
+    make_file_lines(current_file);
 
     current_line = 1;
     tok_array = scan_file();

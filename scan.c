@@ -3,7 +3,7 @@
 #include "decl.h"
 
 const char* token_strings[] = {
-    "EOF", "=", "+", "-", "*", "/", "==", "!=", "<", ">", "<=", ">=", "intlit", ";", "identifier", "{", "}", "(", ")", "int", "if", "else", "while", "for", "void", "char", "long", "return", "&", "short", "\\n"
+    "EOF", "=", "+", "-", "*", "/", "==", "!=", "<", ">", "<=", ">=", "intlit", ";", "identifier", "{", "}", "(", ")", "int", "if", "else", "while", "for", "void", "char", "long", "return", "&", "short", ",", "sizeof", "\\n"
 };
 
 static char identifier_buf[32];
@@ -91,41 +91,45 @@ static int keyword(char* str)
     {
         return T_INT;
     }
-    if (!strcmp(str, "if"))
+    else if (!strcmp(str, "if"))
     {
         return T_IF;
     }
-    if (!strcmp(str, "else"))
+    else if (!strcmp(str, "else"))
     {
         return T_ELSE;
     }
-    if (!strcmp(str, "while"))
+    else if (!strcmp(str, "while"))
     {
         return T_WHILE;
     }
-    if (!strcmp(str, "for"))
+    else if (!strcmp(str, "for"))
     {
         return T_FOR;
     }
-    if (!strcmp(str, "void"))
+    else if (!strcmp(str, "void"))
     {
         return T_VOID;
     }
-    if (!strcmp(str, "char"))
+    else if (!strcmp(str, "char"))
     {
         return T_CHAR;
     }
-    if (!strcmp(str, "long"))
+    else if (!strcmp(str, "long"))
     {
         return T_LONG;
     }
-    if (!strcmp(str, "return"))
+    else if (!strcmp(str, "return"))
     {
         return T_RETURN;
     }
-    if (!strcmp(str, "short"))
+    else if (!strcmp(str, "short"))
     {
         return T_SHORT;
+    }
+    else if (!strcmp(str, "sizeof"))
+    {
+        return T_SIZEOF;
     }
 
     return 0;
@@ -161,6 +165,9 @@ int scan(struct token* t)
             break;
         case ';':
             t->type = T_SEMI_COLON;
+            break;
+        case ',':
+            t->type = T_COMMA;
             break;
         case '=':
             if (peek_next() == '=')

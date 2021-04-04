@@ -154,19 +154,36 @@ int gen_ast(struct ast_node* node, int reg, int parent)
             {
                 return left;
             }
+        case N_CAST:
+            return left;
+    }
+}
+
+void global_declarations()
+{
+    while (1)
+    {
+        int type = parse_type(current_tok.type);
+        next_token();
+
+        if (peek_next_token().type == T_LPAREN)
+        {
+            gen_ast(func_decl_statement(type), NOREG, 0);
+        }
+        else
+        {
+            multi_var_decl(type);
+        }
+
+        if (current_tok.type == T_EOF)
+        {
+            break;
+        }
     }
 }
 
 void gen_code()
 {
     asm_preamble();
-    while (1)
-    {
-        struct ast_node* tree = func_decl_statement();
-        gen_ast(tree, NOREG, 0);
-        if (current_tok.type == T_EOF)
-        {
-            break;
-        }
-    }
+    global_declarations();
 }

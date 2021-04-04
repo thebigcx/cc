@@ -2,10 +2,11 @@
 
 #include "defs.h"
 
-int scan(struct token* t);
-char* concat(const char* s1, const char* s2);
 void error(const char* msg);
 void syntax_error(const char* format, ...);
+void warning(const char* format, ...);
+
+int scan(struct token* t);
 struct ast_node* make_tree_node(int type, int dtype, struct ast_node* left, struct ast_node* mid, struct ast_node* right, int intvalue);
 struct ast_node* make_tree_node_leaf(int type, int dtype, int intvalue);
 struct ast_node* make_tree_node_unary(int type, int dtype, struct ast_node* left, int intvalue);
@@ -20,13 +21,16 @@ void var_decl_statement();
 struct ast_node* if_statement();
 struct ast_node* while_statement();
 struct ast_node* for_statement();
-struct ast_node* func_decl_statement();
+struct ast_node* func_decl_statement(int type);
 struct ast_node* func_call();
 struct ast_node* return_statement();
 struct ast_node* prefix(); // Deref, addrof
-int parse_type(int tok);
+int parse_type();
 int make_pointer(int base_type);
 int pointed_to_type(int ptr_type);
+void multi_var_decl(int type);
+struct token peek_next_token();
+int parse_cast();
 
 // Symbol table
 int find_glob(char* s);

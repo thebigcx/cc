@@ -47,6 +47,26 @@ void next_token()
     }
 }
 
+void previous_token()
+{
+    tok_head_pos--;
+    current_tok = tok_array.data[tok_head_pos];
+}
+
+struct token peek_next_token()
+{
+    return tok_array.data[tok_head_pos + 1];
+}
+
+int parse_cast()
+{
+    expect(T_LPAREN);
+    int type = parse_type();
+    next_token();
+    expect(T_RPAREN);
+    return type;
+}
+
 int arithop(int tok)
 {
     switch (tok)
@@ -104,6 +124,7 @@ static struct ast_node* primary()
 {
     struct ast_node* node;
     int id;
+    int type = 0;
 
     switch (current_tok.type)
     {
@@ -127,7 +148,7 @@ static struct ast_node* primary()
             
             break;
         case T_IDENT:
-            if (tok_array.data[tok_head_pos + 1].type == T_LPAREN)
+            if (peek_next_token().type == T_LPAREN)
             {
                 return func_call();
             }
@@ -140,8 +161,31 @@ static struct ast_node* primary()
 
             node = make_tree_node_leaf(N_IDENT, symbols[id].type, id);
             break;
+        case T_SIZEOF:
+            expect(T_SIZEOF);
+            expect(T_LPAREN);
+
+            int type = parse_type();
+            next_token();
+
+            node = make_tree_node_leaf(N_INTLIT, P_INT, asm_size(type));
+            break;
+
+        case T_LPAREN:
+            type = parse_cast();
+            node = binary_expr(0);
+            previous_token(); // Binary expression advances too far.
+            // TODO: look into this
+            
+            break;
+
         default:
             syntax_error("Unexpected token '%s' in primary expression.", token_strings[current_tok.type]);
+    }
+
+    if (type != 0)
+    {
+        node = make_tree_node_unary(N_CAST, type, node, 0);
     }
 
     next_token();
@@ -174,6 +218,11 @@ struct ast_node* binary_expr(int ptp)
         {
             right->rvalue = 1;
 
+            if (asm_size(right->dtype) > asm_size(left->dtype))
+            {
+                warning("narrowing '%s' to '%s' may cause overflow", type_strings[right->dtype], type_strings[left->dtype]);
+            }
+
             if (!compatible_types(right->dtype, left->dtype))
             {
                 syntax_error("Incompatible types '%s' and '%s' in assignment.", type_strings[right->dtype], type_strings[left->dtype]);
@@ -203,17 +252,36 @@ struct ast_node* binary_expr(int ptp)
     return left;
 }
 
+void multi_var_decl(int type)
+{
+    while (1)
+    {
+        if (current_tok.type == T_SEMI_COLON)
+        {
+            break;
+        }
+
+        if (current_tok.type == T_COMMA)
+        {
+            next_token();
+        }
+
+        char* var_name = current_tok.v.str_value;
+        expect(T_IDENT);
+
+        int id = add_glob(current_tok.v.str_value, type, 0);
+        asm_glob_sym(id);
+    }
+
+    expect(T_SEMI_COLON);
+}
+
 void var_decl_statement()
 {
     int type = parse_type(current_tok.type);
     next_token();
-    char* var_name = current_tok.v.str_value;
-    expect(T_IDENT);
 
-    int id = add_glob(current_tok.v.str_value, type, 0);
-    asm_glob_sym(id);
-
-    expect(T_SEMI_COLON);
+    multi_var_decl(type);
 }
 
 struct ast_node* if_statement()
@@ -281,13 +349,11 @@ struct ast_node* for_statement()
     return make_tree_node(N_GLUE, P_NONE, pre, NULL, tree, 0);
 }
 
-struct ast_node* func_decl_statement()
+struct ast_node* func_decl_statement(int type)
 {
     struct ast_node* tree;
     int nameslot;
 
-    int type = parse_type(current_tok.type);
-    next_token();
     char* name = current_tok.v.str_value;
     nameslot = add_glob(name, type, label());
     func_id = nameslot;
@@ -362,6 +428,7 @@ struct ast_node* statement()
         case T_INT:
         case T_LONG:
         case T_SHORT:
+        case T_VOID:
             var_decl_statement();
             return NULL;
         case T_NEWLINE:
@@ -455,10 +522,10 @@ void expect(int tok_type)
     next_token();
 }
 
-int parse_type(int tok)
+int parse_type()
 {
     int type;
-    switch (tok)
+    switch (current_tok.type)
     {
         case T_CHAR:
             type = P_CHAR;
@@ -476,7 +543,7 @@ int parse_type(int tok)
             type = P_SHORT;
     }
 
-    if (tok_array.data[tok_head_pos + 1].type == T_STAR)
+    if (peek_next_token().type == T_STAR)
     {
         next_token();
         return make_pointer(type);

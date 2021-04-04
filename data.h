@@ -15,3 +15,4 @@ extern_ struct token_array tok_array;
 extern_ FILE* out_file;
 extern_ struct sym symbols[1024];
 extern_ int func_id;
+extern_ char* current_file;

@@ -3,16 +3,15 @@ int* pointer()
     return 0;
 }
 
+int o, p;
+
 void main()
 {
-    int o;
-    int p;
-    o = p = 10;
+    o = p = sizeof(long);
     
-    short s;
-    s = 7000;
+    int s, s2;
+    s = (char)700;
 
-    short s2;
     s2 = s;
 
     int* ptr;

@@ -99,7 +99,7 @@ int _asm_load_glob(int id)
     switch (symbols[id].type)
     {
         case P_INT:
-            fprintf(out_file, "\tmovzlq\t%s(%%rip), %s\n", name, registers[r]);
+            fprintf(out_file, "\tmovslq\t%s(%%rip), %s\n", name, registers[r]);
             break;
         case P_CHAR:
             fprintf(out_file, "\tmovzbq\t%s(%%rip), %s\n", name, registers[r]);
@@ -276,7 +276,7 @@ int _asm_deref(int r, int type)
         case P_CHARPTR:
             fprintf(out_file, "\tmovzbq\t(%s), %s\n", registers[r], registers[r]);
         case P_SHORTPTR:
-            fprintf(out_file, "\tmovzlq\t(%s), %s\n", registers[r], registers[r]);
+            fprintf(out_file, "\tmovslq\t(%s), %s\n", registers[r], registers[r]);
         case P_INTPTR:
         case P_LONGPTR:
             fprintf(out_file, "\tmovq\t(%s), %s\n", registers[r], registers[r]);
