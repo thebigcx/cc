@@ -20,6 +20,7 @@ struct ast_node* make_tree_node(int type, int dtype, struct ast_node* left, stru
     node->mid = mid;
     node->right = right;
     node->v.intvalue = intvalue;
+    node->rvalue = 0;
 
     return node;
 }
@@ -420,6 +421,27 @@ struct ast_node* prefix()
     return tree;
 }
 
+struct ast_node* switch_statement()
+{
+    struct ast_node* tree;
+
+
+}
+
+struct ast_node* break_statement()
+{
+    expect(T_BREAK);
+
+    return make_tree_node_leaf(N_BREAK, P_NONE, 0);
+}
+
+struct ast_node* continue_statement()
+{
+    expect(T_CONTINUE);
+
+    return make_tree_node_leaf(N_CONTINUE, P_NONE, 0);
+}
+
 struct ast_node* statement()
 {
     switch (current_tok.type)
@@ -441,8 +463,14 @@ struct ast_node* statement()
             return while_statement();
         case T_FOR:
             return for_statement();
+        case T_SWITCH:
+            return switch_statement();
         case T_RETURN:
             return return_statement();
+        case T_BREAK:
+            return break_statement();
+        case T_CONTINUE:
+            return continue_statement();
         default:
             return binary_expr(0);
     }
@@ -467,7 +495,7 @@ struct ast_node* compound_statement()
 
         tree = statement();
 
-        if (tree != NULL && (tree->type == N_ASSIGN || tree->type == N_FUNCCALL || tree->type == N_RETURN))
+        if (tree != NULL && (tree->type == N_ASSIGN || tree->type == N_FUNCCALL || tree->type == N_RETURN || tree->type == N_BREAK || tree->type == N_CONTINUE))
         {
             expect(T_SEMI_COLON);
         }

@@ -25,6 +25,9 @@ struct ast_node* func_decl_statement(int type);
 struct ast_node* func_call();
 struct ast_node* return_statement();
 struct ast_node* prefix(); // Deref, addrof
+struct ast_node* switch_statement();
+struct ast_node* break_statement();
+struct ast_node* continue_statement();
 int parse_type();
 int make_pointer(int base_type);
 int pointed_to_type(int ptr_type);

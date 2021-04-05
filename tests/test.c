@@ -18,4 +18,10 @@ void main()
     ptr = &o;
     *ptr = 100;
     ptr = pointer(10);
+
+    int index;
+    for (index = 0; index < 10; index = index + 1)
+    {
+        continue;
+    }
 }

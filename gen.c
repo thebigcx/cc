@@ -1,6 +1,9 @@
 #include "decl.h"
 #include "data.h"
 
+static int current_end_loop_label = 0;
+static int current_start_loop_label = 0;
+
 int label()
 {
     static int id = 1;
@@ -45,6 +48,9 @@ static int gen_while_tree(struct ast_node* node)
     l_top = label();
     l_end = label();
 
+    current_start_loop_label = l_top;
+    current_end_loop_label = l_end;
+
     asm_label(l_top);
 
     gen_ast(node->left, l_end, node->type);
@@ -84,6 +90,12 @@ int gen_ast(struct ast_node* node, int reg, int parent)
             asm_free_all_registers();
             gen_ast(node->right, NOREG, node->type);
             asm_free_all_registers();
+            return NOREG;
+        case N_BREAK:
+            asm_jump(current_end_loop_label);
+            return NOREG;
+        case N_CONTINUE:
+            asm_jump(current_start_loop_label);
             return NOREG;
     }
 

@@ -30,6 +30,8 @@ void syntax_error(const char* format, ...)
 
 void warning(const char* format, ...)
 {
+    warning_count++;
+
     va_list list;
 
     va_start(list, format);

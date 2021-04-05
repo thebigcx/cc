@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <time.h>
 
 #include "defs.h"
 #define extern_
@@ -77,6 +78,7 @@ int main(int argc, char* argv[])
     long size;
     int opt;
     int output_assembly = 0;
+    clock_t timer;
 
     while ((opt = getopt(argc, argv, "s:o:S")) != -1)
     {
@@ -128,6 +130,8 @@ int main(int argc, char* argv[])
 
     make_file_lines(current_file);
 
+    timer = clock();
+
     current_line = 1;
     tok_array = scan_file();
     //print_tokens(tok_array);
@@ -147,6 +151,10 @@ int main(int argc, char* argv[])
     snprintf(assemble_cmd, 256, "gcc -no-pie %s -o %s", assembly_output_name, output_name);
 
     system(assemble_cmd);
+
+    timer = clock() - timer;
+
+    printf("Compilation completed with %d warnings in %fs\n", warning_count, ((float)timer / CLOCKS_PER_SEC));
 
     if (!output_assembly)
     {

@@ -3,7 +3,7 @@
 #include "decl.h"
 
 const char* token_strings[] = {
-    "EOF", "=", "+", "-", "*", "/", "==", "!=", "<", ">", "<=", ">=", "intlit", ";", "identifier", "{", "}", "(", ")", "int", "if", "else", "while", "for", "void", "char", "long", "return", "&", "short", ",", "sizeof", "\\n"
+    "EOF", "=", "+", "-", "*", "/", "==", "!=", "<", ">", "<=", ">=", "intlit", ";", "identifier", "{", "}", "(", ")", "int", "if", "else", "while", "for", "void", "char", "long", "return", "&", "short", ",", "sizeof", "switch", "continue", "break", "\\n"
 };
 
 static char identifier_buf[32];
@@ -130,6 +130,18 @@ static int keyword(char* str)
     else if (!strcmp(str, "sizeof"))
     {
         return T_SIZEOF;
+    }
+    else if (!strcmp(str, "switch"))
+    {
+        return T_SWITCH;
+    }
+    else if (!strcmp(str, "break"))
+    {
+        return T_BREAK;
+    }
+    else if (!strcmp(str, "continue"))
+    {
+        return T_CONTINUE;
     }
 
     return 0;
