@@ -77,6 +77,8 @@ void asm_return(int r, int func_id);
 int asm_addrof(int id);
 int asm_deref(int r, int type);
 int asm_store_deref(int r1, int r2, int type);
+int asm_glob_str(char* str);
+int asm_load_glob_str(int id);
 
 // Implementations (asm gen varies based on os)
 void _asm_free_all_registers();
@@ -104,6 +106,8 @@ void _asm_return(int r, int func_id);
 int _asm_addrof(int id);
 int _asm_deref(int r, int type);
 int _asm_store_deref(int r1, int r2, int type);
+int _asm_glob_str(char* str);
+int _asm_load_glob_str(int id);
 
 int integral_type(int type);
 int pointer_type(int type);

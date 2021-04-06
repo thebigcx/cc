@@ -6,7 +6,7 @@ const char* token_strings[] = {
     "EOF", "=", "+", "-", "*", "/", "==", "!=", "<", ">", "<=", ">=", "intlit", ";", 
     "identifier", "{", "}", "(", ")", "int", "if", "else", "while", "for", "void", 
     "char", "long", "return", "&", "short", ",", "sizeof", "switch", "continue", "break", 
-    "[", "]", "\\n"
+    "[", "]", "strlit", "\\n"
 };
 
 static char identifier_buf[32];
@@ -63,6 +63,23 @@ static int scanint(int c)
 
     char_head_pos--;
     return val;
+}
+
+static char* scanstr(int c)
+{
+    char* str = malloc(1024);
+
+    int i = 0;
+    while (c != '"')
+    {
+        str[i] = c;
+        i++;
+        c = next();
+    }
+
+    str[i] = '\0';
+
+    return str;
 }
 
 static int scan_identifier(int c, char* buf, int lim)
@@ -245,6 +262,12 @@ int scan(struct token* t)
         case ']':
             t->type = T_RBRACKET;
             break;
+        case '"':
+            c = next();
+            t->type = T_STRLIT;
+            t->v.str_value = scanstr(c);
+            break;
+
         default:
             if (isdigit(c))
             {

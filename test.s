@@ -17,6 +17,9 @@ L1:
 	.comm	s, 4, 4
 	.comm	s2, 4, 4
 	.comm	ptr, 8, 8
+	.comm	str, 8, 8
+L3:
+	.string	"Hello, world!"
 	.comm	array, 40, 40
 main:
 	pushq	%rbp
@@ -38,6 +41,12 @@ main:
 	call	pointer
 	movq	%rax, %r9
 	movq	%r9, ptr(%rip)
+	movq	$100, %r8
+	movq	ptr(%rip), %r9
+	leaq	L3(%rip), %r8
+	movq	%r8, str(%rip)
+	movq    str(%rip), %rdi
+	call    printf
 	movq	$10, %r8
 	leaq	array(%rip), %r9
 	movq	$3, %r10

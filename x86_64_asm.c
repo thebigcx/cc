@@ -307,3 +307,20 @@ int _asm_store_deref(int r1, int r2, int type)
             fprintf(out_file, "\tmovq\t%s, (%s)\n", registers[r1], registers[r2]);
     }
 }
+
+int _asm_glob_str(char* str)
+{
+    int l = label();
+    asm_label(l);
+
+    fprintf(out_file, "\t.string\t\"%s\"\n", str);
+
+    return l;
+}
+
+int _asm_load_glob_str(int id)
+{
+    int r = asm_alloc_register();
+    fprintf(out_file, "\tleaq\tL%d(%%rip), %s\n", id, registers[r]);
+    return r;
+}

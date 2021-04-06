@@ -152,3 +152,13 @@ int asm_store_deref(int r1, int r2, int type)
 {
     return _asm_store_deref(r1, r2, type);
 }
+
+int asm_glob_str(char* str)
+{
+    return _asm_glob_str(str);
+}
+
+int asm_load_glob_str(int id)
+{
+    return _asm_load_glob_str(id);
+}

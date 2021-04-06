@@ -195,6 +195,14 @@ static struct ast_node* primary()
             }
             
             break;
+
+        case T_STRLIT:
+            id = asm_glob_str(current_tok.v.str_value);
+
+            node = make_tree_node_leaf(N_STRLIT, P_CHARPTR, id);
+
+            break;
+
         case T_IDENT:
             if (peek_next_token().type == T_LPAREN)
             {

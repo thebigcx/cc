@@ -171,6 +171,8 @@ int gen_ast(struct ast_node* node, int reg, int parent)
         case N_SCALE:
             right = asm_load(node->v.intvalue);
             return asm_mul(left, right);
+        case N_STRLIT:
+            return asm_load_glob_str(node->v.id);
     }
 }
 

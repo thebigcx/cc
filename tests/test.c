@@ -19,6 +19,9 @@ void main()
     *ptr = 100;
     ptr = pointer(10);
 
+    char* str;
+    str = "Hello, world!";
+
     int array[10];
     array[3] = 10;
 }
