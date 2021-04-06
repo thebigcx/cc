@@ -121,7 +121,7 @@ static int rightassoc(int tok_type)
 
 struct ast_node* array_index()
 {
-    int id = find_glob(current_tok.v.str_value);
+    int id = find_sym(current_tok.v.str_value);
 
     expect(T_IDENT);
     expect(T_LBRACKET);
@@ -213,7 +213,7 @@ static struct ast_node* primary()
                 return array_index();
             }
 
-            id = find_glob(current_tok.v.str_value);
+            id = find_sym(current_tok.v.str_value);
             if (id == -1)
             {
                 syntax_error("Undeclared variable '%s'", current_tok.v.str_value);
@@ -268,10 +268,7 @@ struct ast_node* binary_expr(int ptp)
         {
             right->rvalue = 1;
 
-            if (asm_size(right->dtype) > asm_size(left->dtype))
-            {
-                warning("narrowing '%s' to '%s' may cause overflow", type_strings[right->dtype], type_strings[left->dtype]);
-            }
+            warn_narrow(right->dtype, left->dtype);
 
             if (!compatible_types(right->dtype, left->dtype))
             {
@@ -302,7 +299,7 @@ struct ast_node* binary_expr(int ptp)
     return left;
 }
 
-void multi_var_decl(int type)
+void multi_var_decl(int type, int is_local)
 {
     while (1)
     {
@@ -329,25 +326,37 @@ void multi_var_decl(int type)
             expect(T_RBRACKET);
 
             // Type is a pointer (points to first element)
-            id = add_glob(var_name, make_pointer(type), S_ARR, 0, arr_size);
+            if (is_local)
+            {
+                id = add_locl(var_name, make_pointer(type), S_ARR, 0, arr_size);
+            }
+            else
+            {
+                id = add_glob(var_name, make_pointer(type), S_ARR, 0, arr_size);
+            }
         }
         else
         {
-            id = add_glob(var_name, type, S_VAR, 0, 0);
+            if (is_local)
+            {
+                id = add_locl(var_name, type, S_VAR, 0, 0);
+            }
+            else
+            {
+                id = add_glob(var_name, type, S_VAR, 0, 0);
+            }
         }
-
-        asm_glob_sym(id);
     }
 
     expect(T_SEMI_COLON);
 }
 
-void var_decl_statement()
+void var_decl_statement(int is_local)
 {
     int type = parse_type(current_tok.type);
     next_token();
 
-    multi_var_decl(type);
+    multi_var_decl(type, is_local);
 }
 
 struct ast_node* if_statement()
@@ -516,7 +525,7 @@ struct ast_node* statement()
         case T_LONG:
         case T_SHORT:
         case T_VOID:
-            var_decl_statement();
+            var_decl_statement(1);
             return NULL;
         case T_NEWLINE:
             next_token();
@@ -584,7 +593,7 @@ struct ast_node* func_call()
     struct ast_node* tree;
     int id;
 
-    id = find_glob(current_tok.v.str_value);
+    id = find_sym(current_tok.v.str_value);
     if (id == -1)
     {
         syntax_error("Undeclared function '%s'", current_tok.v.str_value);
@@ -682,6 +691,14 @@ int compatible_types(int t1, int t2)
     }
 
     return 0;
+}
+
+void warn_narrow(int t1, int t2)
+{
+    if (asm_size(t1) > asm_size(t2))
+    {
+        warning("narrowing '%s' to '%s' may cause overflow", type_strings[t1], type_strings[t2]);
+    }
 }
 
 int make_pointer(int base_type)

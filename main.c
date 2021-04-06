@@ -133,6 +133,7 @@ int main(int argc, char* argv[])
     timer = clock();
 
     current_line = 1;
+    locls = 1023;
     tok_array = scan_file();
     //print_tokens(tok_array);
 

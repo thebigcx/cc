@@ -137,7 +137,14 @@ int gen_ast(struct ast_node* node, int reg, int parent)
         case N_IDENT:
             if (node->rvalue || parent == N_DEREF)
             {
-                return asm_load_glob(node->v.id);
+                if (symbols[node->v.id].class == C_GLOBAL)
+                {
+                    return asm_load_glob(node->v.id);
+                }
+                else if (symbols[node->v.id].class == C_LOCAL)
+                {
+                    return asm_load_locl(node->v.id);
+                }
             }
             else
             {
@@ -147,7 +154,15 @@ int gen_ast(struct ast_node* node, int reg, int parent)
             switch (node->right->type)
             {
                 case N_IDENT:
-                    return asm_store_glob(left, node->right->v.id);
+                    if (symbols[node->right->v.id].class == C_GLOBAL)
+                    {
+                        return asm_store_glob(left, node->right->v.id);
+                    }
+                    else if (symbols[node->right->v.id].class == C_LOCAL)
+                    {
+                        return asm_store_locl(left, node->right->v.id);
+                    }
+
                 case N_DEREF:
                     return asm_store_deref(left, right, node->right->dtype);
             }
@@ -189,7 +204,7 @@ void global_declarations()
         }
         else
         {
-            multi_var_decl(type);
+            multi_var_decl(type, 0);
         }
 
         if (current_tok.type == T_EOF)

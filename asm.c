@@ -58,9 +58,19 @@ int asm_load_glob(int id)
     return _asm_load_glob(id);
 }
 
+int asm_load_locl(int id)
+{
+    return _asm_load_locl(id);
+}
+
 int asm_store_glob(int r, int id)
 {
     return _asm_store_glob(r, id);
+}
+
+int asm_store_locl(int r, int id)
+{
+    return _asm_store_locl(r, id);
 }
 
 int asm_equal(int r1, int r2)
@@ -161,4 +171,24 @@ int asm_glob_str(char* str)
 int asm_load_glob_str(int id)
 {
     return _asm_load_glob_str(id);
+}
+
+int asm_get_stack_offset(int size, int is_param)
+{
+    return _asm_get_stack_offset(size, is_param);
+}
+
+int asm_reset_stack()
+{
+    return asm_reset_stack();
+}
+
+void asm_text_sect()
+{
+    _asm_text_sect();
+}
+
+void asm_rom_sect()
+{
+    _asm_rom_sect();
 }

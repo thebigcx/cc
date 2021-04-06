@@ -21,6 +21,9 @@ void main()
 
     char* str;
     str = "Hello, world!";
+    int h_char;
+    h_char = 'H';
+    h_char = str[0];
 
     int array[10];
     array[3] = 10;

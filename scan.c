@@ -65,6 +65,41 @@ static int scanint(int c)
     return val;
 }
 
+static int scanchar(int c)
+{
+    if (c == '\\')
+    {
+        int esc = next();
+        switch (esc)
+        {
+            case 'n':
+                return '\n';
+            case 't':
+                return '\t';
+            case 'r':
+                return '\r';
+            case 'b':
+                return '\b';
+            case '"':
+                return '"';
+            case '\\':
+                return '\\';
+            case 'a':
+                return '\a';
+            case '\'':
+                return '\'';
+            case 'v':
+                return '\v';
+            case 'f':
+                return '\f';
+            default:
+                error("Invalid escape sequence.");
+        }
+    }
+
+    return c;
+}
+
 static char* scanstr(int c)
 {
     char* str = malloc(1024);
@@ -72,9 +107,9 @@ static char* scanstr(int c)
     int i = 0;
     while (c != '"')
     {
-        str[i] = c;
-        i++;
+        str[i] = scanchar(c);
         c = next();
+        i++;
     }
 
     str[i] = '\0';
@@ -266,6 +301,12 @@ int scan(struct token* t)
             c = next();
             t->type = T_STRLIT;
             t->v.str_value = scanstr(c);
+            break;
+        case '\'':
+            next();
+            t->type = T_INTLIT;
+            t->v.int_value = scanchar(c);
+            next();
             break;
 
         default:

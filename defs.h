@@ -63,9 +63,15 @@ struct ast_node
 
 #define NOREG -1
 
-enum st_type // Structural type
+enum ST_TYPE // Structural type
 {
     S_FUNC, S_VAR, S_ARR
+};
+
+enum S_CLASS
+{
+    C_GLOBAL = 1,
+    C_LOCAL
 };
 
 struct sym
@@ -75,6 +81,8 @@ struct sym
     int stype;
     int endlabel;
     int arr_elements;
+    int class;
+    int stack_offset;
 };
 
 enum TYPES
