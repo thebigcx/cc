@@ -61,10 +61,8 @@ struct token peek_next_token()
 
 int parse_cast()
 {
-    expect(T_LPAREN);
     int type = parse_type();
     next_token();
-    expect(T_RPAREN);
     return type;
 }
 
@@ -121,11 +119,60 @@ static int rightassoc(int tok_type)
     return 0;
 }
 
+struct ast_node* array_index()
+{
+    int id = find_glob(current_tok.v.str_value);
+
+    expect(T_IDENT);
+    expect(T_LBRACKET);
+
+    struct ast_node* left = make_tree_node_leaf(N_ADDROF, symbols[id].type, id);
+    struct ast_node* subscript = binary_expr(0);
+
+    subscript = make_tree_node_unary(N_SCALE, left->dtype, subscript, asm_size(pointed_to_type(left->dtype)));
+
+    left = make_tree_node(N_ADD, symbols[id].type, left, NULL, subscript, 0);
+    left = make_tree_node_unary(N_DEREF, left->dtype, left, 0);
+
+    expect(T_RBRACKET);
+
+    return left;
+}
+
+struct ast_node* paren_expression()
+{
+    struct ast_node* node;
+    int type = 0;
+
+    expect(T_LPAREN);
+
+    if (is_type(current_tok.type))
+    {
+        type = parse_cast();
+        expect(T_RPAREN);
+        node = binary_expr(0);
+    }
+    else
+    {
+        node = binary_expr(0);
+    }
+
+    if (type == 0)
+    {
+        expect(T_RPAREN);
+    }
+    else
+    {
+        node = make_tree_node_unary(N_CAST, type, node, 0);
+    }
+
+    return node;
+}
+
 static struct ast_node* primary()
 {
     struct ast_node* node;
     int id;
-    int type = 0;
 
     switch (current_tok.type)
     {
@@ -153,6 +200,10 @@ static struct ast_node* primary()
             {
                 return func_call();
             }
+            else if (peek_next_token().type == T_LBRACKET)
+            {
+                return array_index();
+            }
 
             id = find_glob(current_tok.v.str_value);
             if (id == -1)
@@ -173,20 +224,10 @@ static struct ast_node* primary()
             break;
 
         case T_LPAREN:
-            type = parse_cast();
-            node = binary_expr(0);
-            previous_token(); // Binary expression advances too far.
-            // TODO: look into this
-            
-            break;
+            return paren_expression();
 
         default:
             syntax_error("Unexpected token '%s' in primary expression.", token_strings[current_tok.type]);
-    }
-
-    if (type != 0)
-    {
-        node = make_tree_node_unary(N_CAST, type, node, 0);
     }
 
     next_token();
@@ -202,7 +243,7 @@ struct ast_node* binary_expr(int ptp)
     left = prefix(); // Calls primary as well
 
     tok_type = current_tok.type;
-    if (tok_type == T_SEMI_COLON || tok_type == T_RPAREN)
+    if (tok_type == T_SEMI_COLON || tok_type == T_RPAREN || tok_type == T_RBRACKET)
     {
         left->rvalue = 1;
         return left;
@@ -242,7 +283,7 @@ struct ast_node* binary_expr(int ptp)
         left = make_tree_node(arithop(tok_type), left->dtype, left, NULL, right, 0);
 
         tok_type = current_tok.type;
-        if (tok_type == T_SEMI_COLON || tok_type == T_RPAREN)
+        if (tok_type == T_SEMI_COLON || tok_type == T_RPAREN || tok_type == T_RBRACKET)
         {
             left->rvalue = 1;
             return left;
@@ -270,7 +311,23 @@ void multi_var_decl(int type)
         char* var_name = current_tok.v.str_value;
         expect(T_IDENT);
 
-        int id = add_glob(current_tok.v.str_value, type, 0);
+        int id;
+
+        if (current_tok.type == T_LBRACKET)
+        {
+            expect(T_LBRACKET);
+            int arr_size = current_tok.v.int_value;
+            next_token();
+            expect(T_RBRACKET);
+
+            // Type is a pointer (points to first element)
+            id = add_glob(var_name, make_pointer(type), S_ARR, 0, arr_size);
+        }
+        else
+        {
+            id = add_glob(var_name, type, S_VAR, 0, 0);
+        }
+
         asm_glob_sym(id);
     }
 
@@ -356,7 +413,7 @@ struct ast_node* func_decl_statement(int type)
     int nameslot;
 
     char* name = current_tok.v.str_value;
-    nameslot = add_glob(name, type, label());
+    nameslot = add_glob(name, type, S_FUNC, label(), 0);
     func_id = nameslot;
     expect(T_IDENT);
     expect(T_LPAREN);
@@ -588,6 +645,21 @@ int pointer_type(int type)
 int integral_type(int type)
 {
     return type == P_CHAR || type == P_INT || type == P_SHORT || type == P_LONG || pointer_type(type);
+}
+
+int is_type(int tok)
+{
+    switch (tok)
+    {
+        case T_CHAR:
+        case T_VOID:
+        case T_INT:
+        case T_SHORT:
+        case T_LONG:
+            return 1;
+        default:
+            return 0;
+    }
 }
 
 int compatible_types(int t1, int t2)

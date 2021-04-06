@@ -15,7 +15,7 @@ enum TOKENS
     T_INTLIT, T_SEMI_COLON, T_IDENT,
     T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN,
     T_INT, T_IF, T_ELSE, T_WHILE, T_FOR, T_VOID, T_CHAR, T_LONG, T_RETURN, T_AMPER, T_SHORT,
-    T_COMMA, T_SIZEOF, T_SWITCH, T_CONTINUE, T_BREAK,
+    T_COMMA, T_SIZEOF, T_SWITCH, T_CONTINUE, T_BREAK, T_LBRACKET, T_RBRACKET,
 
     T_NEWLINE
 };
@@ -43,7 +43,7 @@ enum NODES
     N_ADD, N_SUB, N_MULT, N_DIV,
     N_EQ, N_NE, N_LT, N_GT, N_LE, N_GE,
     N_INTLIT, N_IDENT, N_ASSIGN, N_GLUE, N_IF, N_WHILE, N_FOR, N_FUNCTION, N_FUNCCALL, N_RETURN, N_ADDROF, N_DEREF, N_CAST,
-    N_BREAK, N_CONTINUE
+    N_BREAK, N_CONTINUE, N_SCALE
 };
 
 struct ast_node
@@ -63,11 +63,18 @@ struct ast_node
 
 #define NOREG -1
 
+enum st_type // Structural type
+{
+    S_FUNC, S_VAR, S_ARR
+};
+
 struct sym
 {
     char* name;
     int type;
+    int stype;
     int endlabel;
+    int arr_elements;
 };
 
 enum TYPES

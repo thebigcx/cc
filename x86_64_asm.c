@@ -87,7 +87,16 @@ int _asm_div(int reg1, int reg2)
 
 void _asm_glob_sym(int id)
 {
-    int size = asm_size(symbols[id].type);
+    int size;
+    if (symbols[id].stype == S_ARR)
+    {
+        size = asm_size(pointed_to_type(symbols[id].type)) * symbols[id].arr_elements;
+    }
+    else
+    {
+        size = asm_size(symbols[id].type);
+    }
+    
     fprintf(out_file, "\t.comm\t%s, %d, %d\n", symbols[id].name, size, size);
 }
 

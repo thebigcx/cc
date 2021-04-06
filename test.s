@@ -17,7 +17,7 @@ L1:
 	.comm	s, 4, 4
 	.comm	s2, 4, 4
 	.comm	ptr, 8, 8
-	.comm	index, 4, 4
+	.comm	array, 40, 40
 main:
 	pushq	%rbp
 	movq	%rsp, %rbp
@@ -38,20 +38,12 @@ main:
 	call	pointer
 	movq	%rax, %r9
 	movq	%r9, ptr(%rip)
-	movq	$0, %r8
-	movl	%r8d, index(%rip)
-L3:
-	movslq	index(%rip), %r8
-	movq	$10, %r9
-	cmpq	%r9, %r8
-	jge	L4
-	jmp	L3
-	movslq	index(%rip), %r8
-	movq	$1, %r9
-	addq	%r8, %r9
-	movl	%r9d, index(%rip)
-	jmp	L3
-L4:
+	movq	$10, %r8
+	leaq	array(%rip), %r9
+	movq	$3, %r10
+	movq	$4, %r11
+	imulq	%r10, %r11
+	addq	%r9, %r11
 L2:
 	movq	%rbp, %rsp
 	popq	%rbp

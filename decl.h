@@ -12,6 +12,7 @@ struct ast_node* make_tree_node_leaf(int type, int dtype, int intvalue);
 struct ast_node* make_tree_node_unary(int type, int dtype, struct ast_node* left, int intvalue);
 int arithop(int tok);
 struct ast_node* binary_expr(int ptp);
+struct ast_node* paren_expression();
 void next_token();
 
 void expect(int tok_type);
@@ -28,6 +29,7 @@ struct ast_node* prefix(); // Deref, addrof
 struct ast_node* switch_statement();
 struct ast_node* break_statement();
 struct ast_node* continue_statement();
+struct ast_node* array_index();
 int parse_type();
 int make_pointer(int base_type);
 int pointed_to_type(int ptr_type);
@@ -37,7 +39,7 @@ int parse_cast();
 
 // Symbol table
 int find_glob(char* s);
-int add_glob(char* name, int type, int endlabel);
+int add_glob(char* name, int type, int stype, int endlabel, int arr_elements);
 
 int gen_ast(struct ast_node* node, int reg, int parent);
 void gen_code();
@@ -106,3 +108,4 @@ int _asm_store_deref(int r1, int r2, int type);
 int integral_type(int type);
 int pointer_type(int type);
 int compatible_types(int t1, int t2);
+int is_type(int tok);

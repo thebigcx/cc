@@ -168,6 +168,9 @@ int gen_ast(struct ast_node* node, int reg, int parent)
             }
         case N_CAST:
             return left;
+        case N_SCALE:
+            right = asm_load(node->v.intvalue);
+            return asm_mul(left, right);
     }
 }
 
