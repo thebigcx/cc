@@ -6,7 +6,7 @@ static int current_start_loop_label = 0;
 
 int label()
 {
-    static int id = 1;
+    static int id = 0;
     return id++;
 }
 

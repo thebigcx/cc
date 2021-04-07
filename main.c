@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <argp.h>
 #include <time.h>
 
 #include "defs.h"
@@ -6,6 +7,8 @@
 #include "data.h"
 #undef extern_
 #include "decl.h"
+
+// TODO: clean up this file
 
 static void print_tokens(struct token_array array)
 {
@@ -71,46 +74,57 @@ void print_usage()
     printf("usage: compiler <input_file>\n");
 }
 
-int main(int argc, char* argv[])
+struct args_t
 {
-    char* output_name = NULL;
-    FILE* file;
-    long size;
-    int opt;
-    int output_assembly = 0;
-    clock_t timer;
+    char* input_files[64];
+    int input_file_count;
+    char* output_file;
+    int output_assembly;
+    char* defines[64];
+    int define_count;
+    char* include_dirs[16];
+    int include_dir_count;
+};
 
-    while ((opt = getopt(argc, argv, "s:o:S")) != -1)
+static char* change_suffix(char* str, char suffix)
+{
+    char* posn;
+    char* newstr;
+
+    if ((newstr = strdup(str)) == NULL)
     {
-        switch (opt)
-        {
-            case 's':
-                current_file = optarg;
-                break;
-            case 'S':
-                output_assembly = 1;
-                break;
-            case 'o':
-                output_name = optarg;
-                break;
-            default:
-                print_usage();
-                exit(0);
-        }
+        return NULL;
     }
 
-    if (current_file == NULL)
+    if ((posn = strrchr(newstr, '.')) == NULL)
     {
-        error("No input file");
+        return NULL;
     }
 
-    if (output_name == NULL)
+    posn++;
+    if (*posn == '\0')
     {
-        output_name = malloc(6);
-        strcpy(output_name, "a.out");
+        return NULL;
     }
 
-    file = fopen(current_file, "rb");
+    *posn++ = suffix;
+    *posn = '\0';
+
+    return newstr;
+}
+
+char* compile_file(char* file_name)
+{
+    size_t size;
+
+    current_file = file_name;
+
+    char cmd[256];
+    snprintf(cmd, 256, "python3 preproc.py %s", current_file);
+    system(cmd);
+
+    char* preproc_file = change_suffix(current_file, 'i');
+    FILE* file = fopen(preproc_file, "rb");
 
     if (!file)
     {
@@ -130,39 +144,84 @@ int main(int argc, char* argv[])
 
     make_file_lines(current_file);
 
-    timer = clock();
+    //timer = clock();
 
     current_line = 1;
     locls = 1023;
     tok_array = scan_file();
-    //print_tokens(tok_array);
 
     tok_head_pos = -1;
     next_token();
 
-    char assembly_output_name[128];
-    snprintf(assembly_output_name, 128, "%s.s", output_name);
+    char* asm_file = change_suffix(current_file, 's');
 
-    out_file = fopen(assembly_output_name, "w");
+    out_file = fopen(asm_file, "w");
     current_line = 1;
     gen_code();
     fclose(out_file);
 
-    char assemble_cmd[256];
-    snprintf(assemble_cmd, 256, "gcc -no-pie %s -o %s", assembly_output_name, output_name);
+    free(input);
 
-    system(assemble_cmd);
+    return asm_file;
+}
 
-    timer = clock() - timer;
+int main(int argc, char* argv[])
+{
+    FILE* file;
+    long size;
+    int opt;
+    clock_t timer;
 
-    printf("Compilation completed with %d warnings in %fs\n", warning_count, ((float)timer / CLOCKS_PER_SEC));
+    struct args_t args;
+    args.output_file = NULL;
+    args.input_file_count = 0;
+    args.define_count = 0;
+    args.include_dir_count = 0;
 
-    if (!output_assembly)
+    while ((opt = getopt(argc, argv, "s:o:S")) != -1)
     {
-        remove(assembly_output_name);
+        switch (opt)
+        {
+            case 's':
+                args.input_files[args.input_file_count++] = optarg;
+                break;
+            case 'S':
+                args.output_assembly = 1;
+                break;
+            case 'o':
+                args.output_file = optarg;
+                break;
+            default:
+                print_usage();
+                exit(0);
+        }
     }
 
-    free(input);
+    current_file = args.input_files[0];
+    if (current_file == NULL)
+    {
+        error("No input file");
+    }
+    
+    if (args.output_file == NULL)
+    {
+        args.output_file = malloc(6);
+        strcpy(args.output_file, "a.out");
+    }
+
+    char* assemblies[32];
+    int assembly_count = args.input_file_count;
+
+    for (int i = 0; i < args.input_file_count; i++)
+    {
+        printf("cc %s\n", args.input_files[i]);
+        assemblies[i] = compile_file(args.input_files[i]);
+    }
+
+    char assemble_cmd[1024];
+    snprintf(assemble_cmd, 50, "gcc -no-pie %s -o %s", assemblies[0], args.output_file);
+
+    system(assemble_cmd);
 
     return 0;
 }

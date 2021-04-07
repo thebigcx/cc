@@ -2,20 +2,32 @@
 
 #include "defs.h"
 
+// Errors/warnings
 void error(const char* msg);
 void syntax_error(const char* format, ...);
 void warning(const char* format, ...);
 
+// Lexer
 int scan(struct token* t);
+
+// Tree methods
 struct ast_node* make_tree_node(int type, int dtype, struct ast_node* left, struct ast_node* mid, struct ast_node* right, int intvalue);
 struct ast_node* make_tree_node_leaf(int type, int dtype, int intvalue);
 struct ast_node* make_tree_node_unary(int type, int dtype, struct ast_node* left, int intvalue);
+
+// Expressions
 int arithop(int tok);
 struct ast_node* binary_expr(int ptp);
 struct ast_node* paren_expression();
-void next_token();
+int parse_cast();
 
+// Other parser stuff
+void next_token();
 void expect(int tok_type);
+struct token peek_next_token();
+void warn_narrow(int t1, int t2);
+
+// Parser statements
 struct ast_node* statement();
 struct ast_node* compound_statement();
 void var_decl_statement(int is_local);
@@ -30,13 +42,7 @@ struct ast_node* switch_statement();
 struct ast_node* break_statement();
 struct ast_node* continue_statement();
 struct ast_node* array_index();
-int parse_type();
-int make_pointer(int base_type);
-int pointed_to_type(int ptr_type);
 void multi_var_decl(int type, int is_local);
-struct token peek_next_token();
-int parse_cast();
-void warn_narrow(int t1, int t2);
 
 // Symbol table
 int find_sym(char* s);
@@ -44,15 +50,15 @@ int add_glob(char* name, int type, int stype, int endlabel, int arr_elements);
 int add_locl(char* name, int type, int stype, int endlabel, int arr_elements);
 void update_sym(int slot, char* name, int type, int stype, int endlabel, int arr_elements, int class, int stack_offset);
 
+// Generation
 int gen_ast(struct ast_node* node, int reg, int parent);
 void gen_code();
 
+// ASM interface
 int label();
-
 void asm_free_all_registers();
 int asm_alloc_register();
 void asm_free_register(int reg);
-
 void asm_preamble();
 int asm_load(int value);
 int asm_add(int reg1, int reg2);
@@ -89,7 +95,7 @@ int asm_reset_stack();
 void asm_text_sect();
 void asm_rom_sect();
 
-// Implementations (asm gen varies based on os)
+// ASM Implementations (asm gen varies based on os)
 void _asm_free_all_registers();
 int _asm_alloc_register();
 void _asm_free_register(int reg);
@@ -124,7 +130,14 @@ int _asm_reset_stack();
 void _asm_text_sect();
 void _asm_rom_sect();
 
+// Types
 int integral_type(int type);
 int pointer_type(int type);
 int compatible_types(int t1, int t2);
 int is_type(int tok);
+int parse_type();
+int make_pointer(int base_type);
+int pointed_to_type(int ptr_type);
+
+// Preprocessor
+char* preprocess(char* src);

@@ -1,4 +1,4 @@
-#include "tests/test.h"
+int o, p;
 
 int hello()
 {
@@ -24,7 +24,7 @@ void main()
     *ptr = 100;
     ptr = pointer(10);
 
-    // Pointer
+    
 
     char* str;
     str = "Hello, world!";

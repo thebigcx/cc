@@ -265,6 +265,7 @@ void _asm_func_end(int func_id)
     fprintf(out_file, "\tmovq\t%%rbp, %%rsp\n");
     fprintf(out_file, "\tpopq\t%%rbp\n");
     fprintf(out_file, "\tret\n\n");
+    asm_free_all_registers();
 }
 
 int _asm_call(int r, int id)

@@ -1,20 +1,34 @@
 	.section .text
+	.comm	o, 4, 4
+	.comm	p, 4, 4
+	.global	hello
+hello:
+	pushq	%rbp
+	movq	%rsp, %rbp
+	subq	$0, %rsp
+	movq	$1, %r8
+	movl	%r8d, %eax
+	jmp	L0
+	leaq	o(%rip), %r9
+L0:
+	movq	%rbp, %rsp
+	popq	%rbp
+	ret
+
 	.global	pointer
 pointer:
 	pushq	%rbp
 	movq	%rsp, %rbp
 	subq	$0, %rsp
 	movq	$0, %r8
-	movq	%r8, %rax
-	jmp	L1
-	leaq	pointer(%rip), %r9
+	movl	%r8d, %eax
+	jmp	L0
+	leaq	o(%rip), %r9
 L1:
 	movq	%rbp, %rsp
 	popq	%rbp
 	ret
 
-	.comm	o, 4, 4
-	.comm	p, 4, 4
 	.section .rodata
 L3:
 	.string	"Hello, world!"
@@ -24,9 +38,9 @@ main:
 	pushq	%rbp
 	movq	%rsp, %rbp
 	subq	$80, %rsp
-	movq	$8, %r10
-	movl	%r10d, p(%rip)
-	movl	%r10d, o(%rip)
+	movq	$8, %r8
+	movl	%r8d, p(%rip)
+	movl	%r8d, o(%rip)
 	movq	$700, %r8
 	movl	%r8d, -4(%rbp)
 	movslq	-4(%rbp), %r8
